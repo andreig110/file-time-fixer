@@ -7,6 +7,12 @@
 
 using namespace std;
 
+// Global variables for statistics.
+int numFilesFixed;  // The number of files for which the creation time was fixed.
+int numDirsFixed;   // The number of directories for which the creation time was fixed.
+int numFiles;       // Total files processed.
+int numDirs;        // Total directories processed.
+
 void PrintLastError()
 {
     wcout << "- Last error: " << GetLastError() << endl;
@@ -16,9 +22,15 @@ void ProcessFile(const wstring& filePath, bool isFile)
 {
     DWORD flagsAndAttributes;
     if (isFile)
+    {
         flagsAndAttributes = FILE_ATTRIBUTE_NORMAL;
+        numFiles++;
+    }
     else // if is directory
+    {
         flagsAndAttributes = FILE_FLAG_BACKUP_SEMANTICS;
+        numDirs++;
+    }
     HANDLE hFile = CreateFileW(filePath.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, flagsAndAttributes, NULL);
     if (hFile == INVALID_HANDLE_VALUE)
     {
@@ -50,7 +62,13 @@ void ProcessFile(const wstring& filePath, bool isFile)
         wcout << filePath << " ... ";
         result = SetFileTime(hFile, &ftLastWrite, NULL, &ftLastWrite);
         if (result)
+        {
             wcout << "done." << endl;
+            if (isFile)
+                numFilesFixed++;
+            else // if is directory
+                numDirsFixed++;
+        }
         else
         {
             wcout << "error!" << endl;
@@ -108,6 +126,13 @@ int wmain(int argc, wchar_t* argv[])
     wcout << "Fixing files creation time:" << endl;
     wstring directoryPath = argv[1];
     ProcessDirectory(directoryPath);
+
+    // Printing statistics.
+    wcout << endl << "Statistics:" << endl;
+    wcout << "The number of files for which the creation time was fixed: " << numFilesFixed << endl;
+    wcout << "The number of directories for which the creation time was fixed: " << numDirsFixed << endl;
+    wcout << "Total files processed: " << numFiles << endl;
+    wcout << "Total directories processed: " << numDirs << endl;
 
     return 0;
 }
