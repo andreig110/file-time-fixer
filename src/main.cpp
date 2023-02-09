@@ -1,11 +1,13 @@
 #include <iostream>
 #include <string>
+#include <chrono>
 
 #include <io.h>
 #include <fcntl.h>
 #include <windows.h>
 
 using namespace std;
+using namespace std::chrono;
 
 // Global variables for statistics.
 int numFilesFixed;  // The number of files for which the creation time was fixed.
@@ -125,7 +127,22 @@ int wmain(int argc, wchar_t* argv[])
 
     wcout << "Fixing files creation time:" << endl;
     wstring directoryPath = argv[1];
+    auto start = high_resolution_clock::now();
     ProcessDirectory(directoryPath);
+    auto end = high_resolution_clock::now();
+
+    auto duration = duration_cast<microseconds>(end - start);
+    wstring unit = L" \u03BCs";
+    if (duration.count() >= 10000)
+    {
+        duration = duration_cast<milliseconds>(end - start);
+        unit = L" ms";
+        if (duration.count() >= 10000)
+        {
+            duration = duration_cast<seconds>(end - start);
+            unit = L" sec";
+        }
+    }
 
     // Printing statistics.
     wcout << endl << "Statistics:" << endl;
@@ -133,6 +150,7 @@ int wmain(int argc, wchar_t* argv[])
     wcout << "The number of directories for which the creation time was fixed: " << numDirsFixed << endl;
     wcout << "Total files processed: " << numFiles << endl;
     wcout << "Total directories processed: " << numDirs << endl;
+    wcout << "Execution time: " << duration.count() << unit << endl;
 
     return 0;
 }
