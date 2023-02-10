@@ -131,18 +131,25 @@ int wmain(int argc, wchar_t* argv[])
     ProcessDirectory(directoryPath);
     auto end = high_resolution_clock::now();
 
-    auto duration = duration_cast<microseconds>(end - start);
-    wstring unit = L" \u03BCs";
-    if (duration.count() >= 10000)
+    auto tpDuration = (end - start).count();
+    double duration;
+    wstring unit;
+    if (tpDuration < int(1e6))  // microseconds
     {
-        duration = duration_cast<milliseconds>(end - start);
-        unit = L" ms";
-        if (duration.count() >= 10000)
-        {
-            duration = duration_cast<seconds>(end - start);
-            unit = L" sec";
-        }
+        duration = tpDuration / 1e3;
+        unit = L" \u03BCs";
     }
+    else if (tpDuration < int(1e9))  // milliseconds
+    {
+        duration = tpDuration / 1e6;
+        unit = L" ms";
+    }
+    else  // seconds
+    {
+        duration = tpDuration / 1e9;
+        unit = L" sec";
+    }
+    duration = int(duration * 10.0) / 10.0;
 
     // Printing statistics.
     wcout << endl << "Statistics:" << endl;
@@ -150,7 +157,7 @@ int wmain(int argc, wchar_t* argv[])
     wcout << "The number of directories for which the creation time was fixed: " << numDirsFixed << endl;
     wcout << "Total files processed: " << numFiles << endl;
     wcout << "Total directories processed: " << numDirs << endl;
-    wcout << "Execution time: " << duration.count() << unit << endl;
+    wcout << "Execution time: " << duration << unit << endl;
 
     return 0;
 }
