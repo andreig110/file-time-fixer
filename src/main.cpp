@@ -9,6 +9,11 @@
 using namespace std;
 using namespace std::chrono;
 
+struct ProgramOptions
+{
+    bool simulate; // Do not change files timestamp. The program will not make any changes to the file system.
+} programOptions;
+
 // Global variables for statistics.
 int numFilesFixed;  // The number of files for which the creation time was fixed.
 int numDirsFixed;   // The number of directories for which the creation time was fixed.
@@ -53,6 +58,16 @@ void ProcessFile(const wstring& filePath, bool isFile)
 
     if (CompareFileTime(&ftCreation, &ftLastWrite) > 0)
     {
+        if (programOptions.simulate)
+        {
+            wcout << filePath << endl;
+            if (isFile)
+                numFilesFixed++;
+            else // if is directory
+                numDirsFixed++;
+            return;
+        }
+
         hFile = CreateFileW(filePath.c_str(), GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_EXISTING, flagsAndAttributes, NULL);
         if (hFile == INVALID_HANDLE_VALUE)
         {
@@ -121,12 +136,38 @@ int wmain(int argc, wchar_t* argv[])
 
     if (argc < 2)
     {
-        wcout << "Usage: FileTimeFixer.exe <directory_path>" << endl;
+        wcout << "Usage: FileTimeFixer.exe [options] <directory_path>" << endl;
         return 1;
     }
 
-    wcout << "Fixing files creation time:" << endl;
-    wstring directoryPath = argv[1];
+    // Parse command line arguments.
+    wstring directoryPath;
+    if (argc == 2)
+        directoryPath = argv[1];
+    else //if (argc > 2)
+    {
+        // Set program options from command line arguments.
+        for (int i = 1; i < argc - 1; ++i)
+        {
+            if (wcscmp(argv[i], L"--simulate") == 0)
+                programOptions.simulate = true;
+            else
+            {
+                wcout << "Unknown option: " << argv[i] << endl;
+                return 2;
+            }
+        }
+        directoryPath = argv[argc - 1];
+    }
+
+    if (programOptions.simulate)
+    {
+        wcout << "Simulating..." << endl;
+        wcout << "The creation time of the next files should be fixed:" << endl;
+    }
+    else
+        wcout << "Fixing files creation time:" << endl;
+
     auto start = high_resolution_clock::now();
     ProcessDirectory(directoryPath);
     auto end = high_resolution_clock::now();
@@ -153,8 +194,9 @@ int wmain(int argc, wchar_t* argv[])
 
     // Printing statistics.
     wcout << endl << "Statistics:" << endl;
-    wcout << "The number of files for which the creation time was fixed: " << numFilesFixed << endl;
-    wcout << "The number of directories for which the creation time was fixed: " << numDirsFixed << endl;
+    wstring was = programOptions.simulate ? L"should be" : L"was";
+    wcout << "The number of files for which the creation time " << was << " fixed: " << numFilesFixed << endl;
+    wcout << "The number of directories for which the creation time " << was << " fixed: " << numDirsFixed << endl;
     wcout << "Total files processed: " << numFiles << endl;
     wcout << "Total directories processed: " << numDirs << endl;
     wcout << "Execution time: " << duration << unit << endl;
